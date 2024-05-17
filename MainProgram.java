@@ -1,159 +1,175 @@
 import java.util.*;
-public class MainProgram {
-    class ExpressionTree {
 
-        // Tree Structure
+public class MainProgram {
+    static class ExpressionTree {
+        // membuat tree
         static class Node {
-            String data;
+            String data; 
             Node left, right;
-    
-            Node(String d) {
-                data = d;
+            
+            //constructor
+            Node(String data) {
+                this.data = data;
                 left = right = null;
             }
         }
-    
-        // Function to create a new node
-        static Node newNode(String data) {
+
+        // membuat node baru
+        static Node NodeBaru(String data) {
             return new Node(data);
         }
+        
+        // membuat expression tree 
+        static Node createTree(String infix) {
+            Stack<Character> CharForTree = new Stack<>(); 
+            Stack<Node> NodeForTree = new Stack<>(); 
+            
+             //untuk menampung node sementara saat operasi
+            Node temp, tempLeft, tempRight;
+            
+            //urutan prioritas (0 paling rendah dan 3 paling tinggi)
+            int[] priority = new int[123];
+            priority['+'] = 1;
+            priority['-'] = 1;
+            priority['/'] = 2;
+            priority['*'] = 2;
+            priority['^'] = 3;
+            priority['('] = 0;
     
-        // Function to build Expression Tree
-        static Node build(String s) {
-            Stack<Node> stN = new Stack<>(); // Stack to hold nodes
-            Stack<Character> stC = new Stack<>(); // Stack to hold chars
-            Node t, t1, t2;
-    
-            // Prioritizing the operators
-            int[] p = new int[123];
-            p['+'] = p['-'] = 1;
-            p['/'] = p['*'] = 2;
-            p['^'] = 3;
-            p['('] = 0;
-    
-            for (int i = 0; i < s.length(); i++) {
-                char ch = s.charAt(i);
-                if (ch == '(') {
-                    stC.push(ch); // Push '(' in char stack
-                } else if (Character.isDigit(ch)) {
+            for (int i = 0; i < infix.length(); i++) {
+                char character = infix.charAt(i);
+
+                // '(' dimasukan langsung ke stack 
+                if (character == '(') {
+                    CharForTree.push(character);
+
+                    //memasukkan operator ke stack
+                } else if (Character.isDigit(character)) {
                     StringBuilder num = new StringBuilder();
-                    while (i < s.length() && Character.isDigit(s.charAt(i))) {
-                        num.append(s.charAt(i++));
+                    while (i < infix.length() && Character.isDigit(infix.charAt(i))) {
+                        num.append(infix.charAt(i++));
                     }
                     i--;
-                    t = newNode(num.toString()); // Push the operands in node stack
-                    stN.push(t);
-                } else if (p[ch] > 0) {
-                    while (!stC.isEmpty() && stC.peek() != '(' &&
-                            ((ch != '^' && p[stC.peek()] >= p[ch]) ||
-                                    (ch == '^' && p[stC.peek()] > p[ch]))) {
-                        t = newNode(String.valueOf(stC.pop()));
-                        t1 = stN.pop();
-                        t2 = stN.pop();
-                        t.left = t2;
-                        t.right = t1;
-                        stN.push(t);
+                    temp = NodeBaru(num.toString());
+                    NodeForTree.push(temp);
+
+                    // tidak kosong && paling atas != '(' 
+                    // ch bukan ^ apakah paling atas lbh tinggi prioritynya
+                    // ch adalah ^ cek paling atas lbh tinggi atau tidak
+                } else if (priority[character] > 0) {
+                    while (!CharForTree.isEmpty() && CharForTree.peek() != '(' &&
+                            ((character != '^' && priority[CharForTree.peek()] >= priority[character]) ||
+                                    (character == '^' && priority[CharForTree.peek()] > priority[character]))) {
+                        temp = NodeBaru(String.valueOf(CharForTree.pop()));
+                        tempRight = NodeForTree.pop();
+                        tempLeft = NodeForTree.pop();
+                        temp.left = tempLeft;
+                        temp.right = tempRight;
+                        NodeForTree.push(temp);
                     }
-                    stC.push(ch); // Push current operator to char stack
-                } else if (ch == ')') {
-                    while (!stC.isEmpty() && stC.peek() != '(') {
-                        t = newNode(String.valueOf(stC.pop()));
-                        t1 = stN.pop();
-                        t2 = stN.pop();
-                        t.left = t2;
-                        t.right = t1;
-                        stN.push(t);
+                    CharForTree.push(character);
+                } else if (character == ')') {
+                    while (!CharForTree.isEmpty() && CharForTree.peek() != '(') {
+                        temp = NodeBaru(String.valueOf(CharForTree.pop()));
+                        tempRight = NodeForTree.pop();
+                        tempLeft = NodeForTree.pop();
+                        temp.left = tempLeft;
+                        temp.right = tempRight;
+                        NodeForTree.push(temp);
                     }
-                    stC.pop(); // Pop '('
+                    CharForTree.pop();
                 }
             }
-            return stN.peek();
+            return NodeForTree.peek();
         }
-    
-        // Function to print postfix (postorder) traversal of the tree
-        static void printPostfix(Node root) {
+        
+        // ubah infix menjadi postfix (postorder)
+        static void convertPostfix(Node root) {
             if (root != null) {
-                printPostfix(root.left);
-                printPostfix(root.right);
+                convertPostfix(root.left);
+                convertPostfix(root.right);
                 System.out.print(root.data + " ");
             }
         }
-    
-        // Function to print prefix (preorder) traversal of the tree
-        static void printPrefix(Node root) {
+        
+        // ubah infix menjadi prefix (preorder)
+        static void convertPrefix(Node root) {
             if (root != null) {
                 System.out.print(root.data + " ");
-                printPrefix(root.left);
-                printPrefix(root.right);
+                convertPrefix(root.left);
+                convertPrefix(root.right);
             }
         }
+        
+        // evaluasi expression tree
+        static int hasilEval(Node root) {
+            if (root == null) {
+                return 0;
+            }
     
-        // Function to evaluate the expression tree
-        static int evalTree(Node root) {
-            if (root == null) return 0;
+            if (root.left == null && root.right == null) {
+                return Integer.parseInt(root.data);
+            } 
     
-            // Leaf node (operand)
-            if (root.left == null && root.right == null) return Integer.parseInt(root.data);
+            int sisiKiri = hasilEval(root.left);
+            int sisiKanan = hasilEval(root.right);
     
-            // Evaluate left subtree
-            int leftEval = evalTree(root.left);
-    
-            // Evaluate right subtree
-            int rightEval = evalTree(root.right);
-    
-            // Apply the operator
-            switch (root.data) {
-                case "+": return leftEval + rightEval;
-                case "-": return leftEval - rightEval;
-                case "*": return leftEval * rightEval;
-                case "/": return leftEval / rightEval;
-                case "^": return (int) Math.pow(leftEval, rightEval);
+            if (root.data.equals("+")) {
+                return sisiKiri + sisiKanan;
+            } else if (root.data.equals("-")) {
+                return sisiKiri - sisiKanan;
+            } else if (root.data.equals("*")) {
+                return sisiKiri * sisiKanan;
+            } else if (root.data.equals("/")) {
+                return sisiKiri / sisiKanan;
+            } else if (root.data.equals("^")) {
+                return (int) Math.pow(sisiKiri, sisiKanan);
             }
             return 0;
         }
-    
-        // Function to print the tree in a hierarchical tree form
-        static void printTree(Node root, String indent, boolean last, boolean isRoot) {
+        
+        //untuk membuat output tree
+        static void printTree(Node root, String spasi, boolean last, boolean isRoot) {
             if (root != null) {
-                System.out.print(indent);
+                System.out.print(spasi);
                 if (!isRoot) {
                     if (last) {
                         System.out.print("R---- ");
-                        indent += "   ";
+                        spasi += "   ";
                     } else {
                         System.out.print("L---- ");
-                        indent += "|  ";
+                        spasi += "|  ";
                     }
                 }
                 System.out.println(root.data);
-                printTree(root.left, indent, false, false);
-                printTree(root.right, indent, true, false);
+                printTree(root.left, spasi, false, false);
+                printTree(root.right, spasi, true, false);
             }
         }
     
-        // Driver code
         public static void main(String[] args) {
-            String s = "(5*(4+3)-(2/1))";
-            s = "(" + s;
-            s += ")";
-            Node root = build(s);
-    
-            // Function calls
-            System.out.print("Postfix: ");
-            printPostfix(root);
+            Scanner scanner = new Scanner(System.in); 
+            System.out.println("Masukkan operasi Infix :");  
+            String infix = scanner.next(); 
+            scanner.close();
+
+            Node root = createTree(infix);
+
+            System.out.println("Hasil Expression Tree:");
+            printTree(root, "", true, true); 
+            
+            System.out.print("Hasil Postfix: ");
+            convertPostfix(root);
             System.out.println();
     
-            System.out.print("Prefix: ");
-            printPrefix(root);
+            System.out.print("Hasil Prefix: ");
+            convertPrefix(root);
             System.out.println();
     
-            System.out.print("Evaluation: ");
-            System.out.println(evalTree(root));
+            System.out.print("Hasil Evaluation: ");
+            System.out.println(hasilEval(root));
     
-            System.out.println("Expression Tree:");
-            printTree(root, "", true, true);
         }
     }
-    
 }
 
